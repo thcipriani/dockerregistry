@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 BASE="$HOME/public_html"
 INDEX="${BASE}/index.html"
-IMAGES="$(wm-docker-tags --repos)"
+IMAGES="$(${BASE_DIR}/wm-docker-tags --repos)"
 IMAGE_LIST=
 
 mkdir -p "$BASE"
@@ -14,7 +15,7 @@ make_image_index() {
     mkdir -p "$image_base"
 
     local image_index="${image_base}/index.html"
-    local top_dir="$(realpath --relative-to="$image_base" "$BASE")"
+    local top_dir=$(python -c "import os; print(os.path.relpath('$BASE', '$image_base'))")
     cat > "$image_index" <<IMAGEINDEX
 <!doctype html5>
 <html>
@@ -29,7 +30,7 @@ make_image_index() {
     <h1><a href="${top_dir}">Wikimedia Docker</a> - Image: ${image}</h1>
 IMAGEINDEX
 
-    local tags="$(wm-docker-tags --image-tags "$image")"
+    local tags="$(${BASE_DIR}/wm-docker-tags --image-tags "$image")"
     local latest=$(echo $tags | tr ' ' '\n' | grep -v latest | sort -Vr | head -1)
     local latest_img="docker-registry.wikimedia.org/${image}:${latest}"
     printf '<div class="download"><h2>Download:</h2><code><pre>docker pull %s</pre></code></div>' "$latest_img" >> "$image_index"
@@ -65,3 +66,7 @@ for image in $IMAGES; do
 done
 
 printf '<ul>%b</ul>\n</body\n</html>\n' "$IMAGE_LIST" >> "$INDEX"
+
+if [ ! -f "${BASE}/style.css" ]; then
+    cp "${BASE_DIR}/style.css" "${BASE}/style.css"
+fi

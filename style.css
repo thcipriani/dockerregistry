@@ -416,3 +416,13 @@ nav ~ ul li a:hover {
   color: rgba(131,148,150, 1);
   overflow-y: auto;
 }
+
+footer {
+  clear: both;
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid #333;
+  text-align: right;
+}
+
+#powered-by { float: left; }

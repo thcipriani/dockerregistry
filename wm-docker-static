@@ -65,7 +65,17 @@ for image in $IMAGES; do
     IMAGE_LIST+="<li><a href=\"$image/tags/\">$image</a></li>"
 done
 
-printf '<ul>%b</ul>\n</body\n</html>\n' "$IMAGE_LIST" >> "$INDEX"
+printf '<ul>%b</ul>\n' "$IMAGE_LIST" >> "$INDEX"
+
+cat >> "$INDEX" <<FOOT
+<footer>
+    <div id="powered-by">
+        <a href="/"><img src="https://tools-static.wmflabs.org/toolforge/banners/Powered-by-Toolforge.png" alt="Powered by Wikimedia Toolforge"></a>
+    </div>
+    <a id="source" href="https://github.com/thcipriani/dockerregistry">view source</a>
+</footer>
+</body></html>
+FOOT
 
 if [ ! -f "${BASE}/style.css" ]; then
     cp "${BASE_DIR}/style.css" "${BASE}/style.css"

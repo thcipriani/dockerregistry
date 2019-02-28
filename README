@@ -1,0 +1,4 @@
+# Docker Registry
+
+This is a python script + shell script to create static pages from
+https://docker-registry.wikimedia.org

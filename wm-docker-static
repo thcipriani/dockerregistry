@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DATE="$(date +%s)"
 BASE="$HOME/public_html"
 INDEX="${BASE}/index.html"
+INDEX_NEW="${HOME}/index-${DATE}.html"
 IMAGES="$("${BASE_DIR}"/wm-docker-tags --repos)"
 IMAGE_LIST=
 
@@ -68,7 +70,7 @@ IMAGEINDEX
 }
 
 
-cat > "$INDEX" <<HEAD
+cat > "$INDEX_NEW" <<HEAD
 <!doctype html5>
 <html>
 <head>
@@ -88,8 +90,12 @@ for image in $IMAGES; do
     IMAGE_LIST+="<li><a href=\"$image/tags/\">$image</a></li>"
 done
 
-printf '<ul>%b</ul>\n' "$IMAGE_LIST" >> "$INDEX"
+printf '<ul>%b</ul>\n' "$IMAGE_LIST" >> "$INDEX_NEW"
 
-add_footer "$INDEX"
+add_footer "$INDEX_NEW"
 
 cp "${BASE_DIR}/style.css" "${BASE}/style.css"
+
+if (( $(stat -c "$INDEX_NEW") >= $(stat -c "$INDEX") )); then
+    mv "$INDEX_NEW" "$INDEX"
+fi

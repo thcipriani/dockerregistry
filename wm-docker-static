@@ -98,6 +98,6 @@ add_footer "$INDEX_NEW"
 
 cp "${BASE_DIR}/style.css" "${BASE}/style.css"
 
-if (( $(stat -c "$INDEX_NEW") >= $(stat -c "$INDEX") )); then
+if (( $(stat -c %s "$INDEX_NEW") >= $(stat -c %s "$INDEX") )); then
     mv "$INDEX_NEW" "$INDEX"
 fi

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -23,12 +24,17 @@ class DockerRegistry(object):
         r.raise_for_status()
         return r
 
-    def _page_query(self, query, resp_list, resource='repositories'):
+    def _extract_resource(self, response, resource):
+        return response.json().get(resource)
+
+    def _page_query(self, query, resp_list, fn_argv='', function_name=None):
+        if not function_name:
+            function_name = self._extract_resource
         response = self._query_repo(query)
-        resp_list += response.json().get(resource)
+        resp_list += function_name(response, fn_argv)
 
         # Docker registry paginates and sends continuation header 'Link'
-        next_link = response.headers.get('link')
+        next_link = self._extract_header(response, 'link')
 
         if not next_link:
             return resp_list
@@ -44,10 +50,21 @@ class DockerRegistry(object):
         repos = []
         return self._page_query('_catalog', repos)
 
+    def _extract_header(self, response, header):
+        return response.headers.get(header)
+
     def __getitem__(self, image):
         tags = []
+        tags_with_digest = {}
         self._page_query(os.path.join(image, 'tags', 'list'), tags, 'tags')
-        return {'name': image, 'tags': tags}
+        for tag in tags:
+            digests = []
+            self._page_query(os.path.join(image, 'manifests', tag), digests, 'fsLayers', self._extract_resource)
+            md5sum = hashlib.md5()
+            md5sum.update(''.join([repr(x) for x in digests]))
+            digest_md5 = md5sum.hexdigest()
+            tags_with_digest.setdefault(digest_md5, []).append(tag)
+        return {'name': image, 'tags': tags_with_digest}
 
 def parse_args():
     ap = argparse.ArgumentParser()
@@ -63,7 +80,8 @@ def main():
         print('\n'.join(registry.get_repos()))
         return 0
     tags = registry[args.image_tags]
-    print('\n'.join(tags['tags']))
+    print(json.dumps(tags))
+    # print('\n'.join(tags['tags']))
     return 0
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import re
 
 import requests
 
+REGISTRY = 'https://docker-registry.wikimedia.org'
 BASE_DIR = os.path.dirname(__file__)
 FOOTER = '''
 <footer>
@@ -35,6 +36,30 @@ HEADER_FMT = '''
 '''
 
 
+FOOTER = '''
+<footer>
+    <div id="powered-by">
+        <a href="/"><img src="https://tools-static.wmflabs.org/toolforge/banners/Powered-by-Toolforge.png" alt="Powered by Wikimedia Toolforge"></a>
+    </div>
+    <a id="source" href="https://github.com/thcipriani/dockerregistry">view source</a>
+</footer>
+</body>
+</html>
+'''
+
+
+def make_tag(tag):
+    """
+    Output html for a tag
+    """
+    return '<li>' + tag + '</li>'
+
+def make_tag_group(date_created, tags):
+    """
+    Output grouped html for a list of tags
+    """
+    return '<div class="tag-group">\n<h3>{}</h3>\n<ul>{}</ul>\n</div>'.format(date_created, '\n'.join(tags))
+
 def render_html_tags(tags):
     """
     Output html page for an image
@@ -51,10 +76,22 @@ def render_html_tags(tags):
         top_dir=top_dir,
         image=image
     ))
-    for _, tag_list in tags['tags'].items():
-        print(tag_list)
 
+    latest_created_date = sorted(tags['tags'], reverse=True)[0]
+    latest_tag = tags['tags'][latest_created_date][0]
+    latest_image = '{}:{}'.format(REGISTRY, latest_tag)
 
+    print('<div class="download"><h2>Download:</h2><code><pre>docker pull {}</pre></code></div>'.format(
+        latest_image
+    ))
+
+    print('<div class="tags"><h2>Tags:</h2>')
+    for date_created, tag_list in sorted(tags['tags'].items(), reverse=True):
+        print(make_tag_group(date_created, [make_tag(tag) for tag in tag_list]))
+
+    print('</div>')
+
+    print(FOOTER)
 
 class DockerRegistry(object):
     def __init__(self, url, version='v2'):
@@ -107,11 +144,9 @@ class DockerRegistry(object):
         self._page_query(os.path.join(image, 'tags', 'list'), tags, 'tags')
         for tag in tags:
             digests = []
-            self._page_query(os.path.join(image, 'manifests', tag), digests, 'fsLayers', self._extract_resource)
-            md5sum = hashlib.md5()
-            md5sum.update(''.join([repr(x) for x in digests]).encode('utf8'))
-            digest_md5 = md5sum.hexdigest()
-            tags_with_digest.setdefault(digest_md5, []).append(tag)
+            self._page_query(os.path.join(image, 'manifests', tag), digests, 'history', self._extract_resource)
+            tag_created = json.loads(digests[0]['v1Compatibility'])['created']
+            tags_with_digest.setdefault(tag_created, []).append(tag)
         return {'name': image, 'tags': tags_with_digest}
 
 def parse_args():
@@ -124,7 +159,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    registry = DockerRegistry('https://docker-registry.wikimedia.org')
+    registry = DockerRegistry(REGISTRY)
     if args.repos:
         print('\n'.join(registry.get_repos()))
         return 0

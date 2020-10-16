@@ -381,6 +381,13 @@ h1 ~ ul {
   margin: 0 auto;
 }
 
+.tag-group {
+  padding: 0.5em 1em 1em;
+  background: aliceblue;
+  border: 1px solid gray;
+  margin: 1em;
+}
+
 h1 ~ ul {
   list-style-type: none;
   padding: 0;

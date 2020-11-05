@@ -9,7 +9,7 @@ import re
 import requests
 
 REGISTRY = 'https://docker-registry.wikimedia.org'
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 FOOTER = '''
 <footer>
     <div id="powered-by">
@@ -116,7 +116,11 @@ class DockerRegistry(object):
         if not function_name:
             function_name = self._extract_resource
         response = self._query_repo(query)
-        resp_list += function_name(response, fn_argv)
+        try:
+            resp_list += function_name(response, fn_argv)
+        except TypeError:
+            import pdb
+            pdb.set_trace()
 
         # Docker registry paginates and sends continuation header 'Link'
         next_link = self._extract_header(response, 'link')
@@ -127,13 +131,13 @@ class DockerRegistry(object):
         page = self._pagination_re.search(next_link)
         page = page.group(1)
         if page.startswith('/'):
-            return self._page_query(page[1:], resp_list)
+            return self._page_query(page[1:], resp_list, fn_argv, function_name)
 
         return self._page_query(page, resp_list)
 
     def get_repos(self):
         repos = []
-        return self._page_query('_catalog', repos)
+        return self._page_query('_catalog', repos, 'repositories')
 
     def _extract_header(self, response, header):
         return response.headers.get(header)
